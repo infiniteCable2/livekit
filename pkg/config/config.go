@@ -119,6 +119,9 @@ type Config struct {
 
 type RTCConfig struct {
 	rtcconfig.RTCConfig `yaml:",inline"`
+	// When set, rediscover public ICE addresses for new sessions without
+	// rebinding media sockets. Zero keeps the upstream startup-only behavior.
+	ExternalIPRefreshInterval time.Duration `yaml:"external_ip_refresh_interval,omitempty"`
 
 	TURNServers []TURNServer `yaml:"turn_servers,omitempty"`
 

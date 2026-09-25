@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
@@ -40,6 +41,16 @@ func TestConfig_DefaultsKept(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, true, conf.Room.AutoCreate)
 	require.Equal(t, uint32(10), conf.Room.EmptyTimeout)
+}
+
+func TestConfig_ExternalIPRefreshInterval(t *testing.T) {
+	conf, err := NewConfig("rtc:\n  use_external_ip: true\n  external_ip_refresh_interval: 30s", true, nil, nil)
+	require.NoError(t, err)
+	require.Equal(t, 30*time.Second, conf.RTC.ExternalIPRefreshInterval)
+
+	conf, err = NewConfig("", true, nil, nil)
+	require.NoError(t, err)
+	require.Zero(t, conf.RTC.ExternalIPRefreshInterval)
 }
 
 func TestConfig_SignalMessageSizeLimitDefaults(t *testing.T) {

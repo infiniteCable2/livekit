@@ -65,6 +65,11 @@ rtc:
   # this is useful for cloud environments such as AWS & Google where hosts have an internal IP
   # that maps to an external one
   use_external_ip: true
+  # Optional: rediscover public ICE addresses while running (minimum 15s).
+  # New sessions use the refreshed address; existing sessions are unchanged.
+  # Requires use_external_ip; incompatible with LiveKit's built-in TURN relay.
+  # A failed probe retains the last known address. Disabled by default.
+  # external_ip_refresh_interval: 30s
   # # when set to true, advertises both mapped external and internal IPs to clients as server candidates.
   # # useful when clients connect from both private and public networks.
   # # works when `use_external_ip` is set to true, and also when `node_ip` is set explicitly below.
