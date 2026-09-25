@@ -32,6 +32,7 @@ type LocalNode interface {
 	NodeID() livekit.NodeID
 	NodeType() livekit.NodeType
 	NodeIP() string
+	SetNodeIP(ip string)
 	Region() string
 	SetState(state livekit.NodeState)
 	SetStats(stats *livekit.NodeStats)
@@ -113,6 +114,12 @@ func (l *LocalNodeImpl) NodeIP() string {
 	defer l.lock.RUnlock()
 
 	return l.node.Ip
+}
+
+func (l *LocalNodeImpl) SetNodeIP(ip string) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	l.node.Ip = ip
 }
 
 func (l *LocalNodeImpl) Region() string {

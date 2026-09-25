@@ -26,6 +26,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -68,6 +69,11 @@ type iceConfigCacheKey struct {
 	participantIdentity livekit.ParticipantIdentity
 }
 
+type rtcAddressState struct {
+	config *rtc.WebRTCConfig
+	nodeIP rtcconfig.NodeIP
+}
+
 // RoomManager manages rooms and its interaction with participants.
 // It's responsible for creating, deleting rooms, as well as running sessions for participants
 type RoomManager struct {
@@ -75,6 +81,9 @@ type RoomManager struct {
 
 	config            *config.Config
 	rtcConfig         *rtc.WebRTCConfig
+	rtcAddress        atomic.Pointer[rtcAddressState]
+	rtcRefreshStop    chan struct{}
+	rtcRefreshDone    chan struct{}
 	serverInfo        *livekit.ServerInfo
 	currentNode       routing.LocalNode
 	router            routing.Router
@@ -123,6 +132,13 @@ func NewLocalRoomManager(
 	bus psrpc.MessageBus,
 	forwardStats *sfu.ForwardStats,
 ) (*RoomManager, error) {
+	refreshInterval := conf.RTC.ExternalIPRefreshInterval
+	if refreshInterval < 0 || (refreshInterval > 0 && refreshInterval < 15*time.Second) {
+		return nil, errors.New("rtc.external_ip_refresh_interval must be zero or at least 15 seconds")
+	}
+	if refreshInterval > 0 && (!conf.RTC.UseExternalIP || conf.TURN.Enabled) {
+		return nil, errors.New("rtc.external_ip_refresh_interval requires use_external_ip and no built-in TURN relay")
+	}
 	rtcConf, err := rtc.NewWebRTCConfig(conf)
 	if err != nil {
 		return nil, err
@@ -158,6 +174,7 @@ func NewLocalRoomManager(
 			NodeId:        string(currentNode.NodeID()),
 		},
 	}
+	r.rtcAddress.Store(&rtcAddressState{config: rtcConf, nodeIP: conf.RTC.NodeIP})
 
 	r.roomManagerServer, err = rpc.NewTypedRoomManagerServer(r, bus, rpc.WithServerLogger(logger.GetLogger()), middleware.WithServerMetrics(rpc.PSRPCMetricsObserver{}), psrpc.WithServerChannelSize(conf.PSRPC.BufferSize))
 	if err != nil {
@@ -178,8 +195,61 @@ func NewLocalRoomManager(
 	if err := r.whipServer.RegisterAllCommonTopics(currentNode.NodeID()); err != nil {
 		return nil, err
 	}
+	if refreshInterval > 0 {
+		r.rtcRefreshStop = make(chan struct{})
+		r.rtcRefreshDone = make(chan struct{})
+		go r.runExternalIPRefresh(refreshInterval)
+	}
 
 	return r, nil
+}
+
+// runExternalIPRefresh refreshes only the addresses advertised to newly
+// joining peers. Existing peer connections keep their original ICE state.
+func (r *RoomManager) runExternalIPRefresh(interval time.Duration) {
+	defer close(r.rtcRefreshDone)
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-r.rtcRefreshStop:
+			return
+		case <-ticker.C:
+			r.refreshExternalIP()
+		}
+	}
+}
+
+func (r *RoomManager) refreshExternalIP() {
+	previous := r.rtcAddress.Load()
+	conf := r.config.RTC.RTCConfig
+	nextWebRTC, nodeIP, err := previous.config.WebRTCConfig.RefreshExternalIP(&conf)
+	if err != nil {
+		logger.Warnw("external ICE address refresh failed; retaining previous addresses", err)
+		return
+	}
+	oldMappings := slices.Clone(previous.config.NAT1To1IPs)
+	newMappings := slices.Clone(nextWebRTC.NAT1To1IPs)
+	slices.Sort(oldMappings)
+	slices.Sort(newMappings)
+	if previous.nodeIP == nodeIP && slices.Equal(oldMappings, newMappings) {
+		return
+	}
+
+	// The node registry and ICE candidates must describe the same public node.
+	// A registry failure leaves the active ICE snapshot untouched.
+	if previous.nodeIP != nodeIP {
+		r.currentNode.SetNodeIP(nodeIP.PrimaryIP())
+		if err := r.router.RegisterNode(); err != nil {
+			r.currentNode.SetNodeIP(previous.nodeIP.PrimaryIP())
+			logger.Warnw("external ICE address changed but node registration failed; retaining previous addresses", err)
+			return
+		}
+	}
+	next := *previous.config
+	next.WebRTCConfig = *nextWebRTC
+	r.rtcAddress.Store(&rtcAddressState{config: &next, nodeIP: nodeIP})
+	logger.Infow("refreshed external ICE addresses for new sessions", "oldNodeIP", previous.nodeIP, "nodeIP", nodeIP, "nat1to1IPs", next.NAT1To1IPs)
 }
 
 func (r *RoomManager) GetRoom(_ context.Context, roomName livekit.RoomName) *rtc.Room {
@@ -240,6 +310,10 @@ func (r *RoomManager) HasParticipants() bool {
 }
 
 func (r *RoomManager) Stop() {
+	if r.rtcRefreshStop != nil {
+		close(r.rtcRefreshStop)
+		<-r.rtcRefreshDone
+	}
 	// disconnect all clients
 	r.lock.RLock()
 	rooms := slices.Collect(maps.Values(r.rooms))
@@ -441,7 +515,7 @@ func (r *RoomManager) StartSession(
 	clientConf := r.clientConfManager.GetConfiguration(pi.Client)
 
 	pv := types.ProtocolVersion(pi.Client.Protocol)
-	rtcConf := *r.rtcConfig
+	rtcConf := *r.rtcAddress.Load().config
 	rtcConf.SetBufferFactory(room.GetBufferFactory())
 	if pi.DisableICELite {
 		rtcConf.SettingEngine.SetLite(false)
@@ -673,7 +747,7 @@ func (r *RoomManager) getOrCreateRoom(ctx context.Context, createRoom *livekit.C
 	}
 
 	// construct ice servers
-	newRoom := rtc.NewRoom(ri, internal, *r.rtcConfig, r.config.Room, &r.config.Audio, r.serverInfo, r.telemetry, r.agentClient, r.agentStore, r.egressLauncher)
+	newRoom := rtc.NewRoom(ri, internal, *r.rtcAddress.Load().config, r.config.Room, &r.config.Audio, r.serverInfo, r.telemetry, r.agentClient, r.agentStore, r.egressLauncher)
 
 	roomTopic := rpc.FormatRoomTopic(roomName)
 	roomServer := must.Get(rpc.NewTypedRoomServer(r, r.bus))
@@ -1061,7 +1135,7 @@ func (r *RoomManager) iceServersForParticipant(apiKey string, participant types.
 		if r.config.TURN.UDPPort > 0 && !tlsOnly {
 			// UDP TURN is used as STUN
 			hasSTUN = true
-			for _, ip := range r.config.RTC.NodeIP.ToStringSlice() {
+			for _, ip := range r.rtcAddress.Load().nodeIP.ToStringSlice() {
 				urls = append(urls, fmt.Sprintf("turn:%s?transport=udp", net.JoinHostPort(ip, strconv.Itoa(int(r.config.TURN.UDPPort)))))
 			}
 		}
