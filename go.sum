@@ -123,8 +123,8 @@ github.com/hashicorp/golang-lru v1.0.2 h1:dV3g9Z/unq5DpblPpw+Oqcv4dU/1omnb4Ok8iP
 github.com/hashicorp/golang-lru v1.0.2/go.mod h1:iADmTwqILo4mZ8BN3D2Q6+9jd8WM5uGBxy+E8yxSoD4=
 github.com/hashicorp/golang-lru/v2 v2.0.7 h1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs4luLUK2k=
 github.com/hashicorp/golang-lru/v2 v2.0.7/go.mod h1:QeFd9opnmA6QUJc5vARoKUSoFhyfM2/ZepoAG6RGpeM=
-github.com/infiniteCable2/mediatransportutil v0.0.0-20260925154721-d382624f9a82 h1:VNfGfrjqmqYuNOPGqbpLCCVUTGSk8Avo85EYx9KFUfo=
-github.com/infiniteCable2/mediatransportutil v0.0.0-20260925154721-d382624f9a82/go.mod h1:o8CFmAdrVwzJNOCsQCLUzXRjokkufNshnQHOe4fRaqU=
+github.com/infiniteCable2/mediatransportutil v0.0.0-20261022100008-f9a32b35daff h1:11xSwb6BlScR9wS56465filtxWpfDxeY3hCOZpyb33Y=
+github.com/infiniteCable2/mediatransportutil v0.0.0-20261022100008-f9a32b35daff/go.mod h1:o8CFmAdrVwzJNOCsQCLUzXRjokkufNshnQHOe4fRaqU=
 github.com/jellydator/ttlcache/v3 v3.4.1 h1:bOdXmXiycyK6E6Qjyuj5vl+/vU3SCOoDs8a86NbHjAQ=
 github.com/jellydator/ttlcache/v3 v3.4.1/go.mod h1:j7LO12PNghFg5+0v9budMAT4rDK4JY969jb9vOdOBBk=
 github.com/josharian/native v0.0.0-20200817173448-b6b71def0850/go.mod h1:7X/raswPFr05uY3HiLlYeyQntB6OO7E/d2Cu7qoaN2w=
@@ -166,8 +166,6 @@ github.com/livekit/ice/v4 v4.4.0-warp.3 h1:iSAtEiLeCi/ZKEKOsRrDlBg/BRcyUKpV/NuAX
 github.com/livekit/ice/v4 v4.4.0-warp.3/go.mod h1:obAyD+J+Hzs7QA7Y8YXHp5uIn6gb7z87pKedXZkrcFU=
 github.com/livekit/mageutil v0.0.0-20250511045019-0f1ff63f7731 h1:9x+U2HGLrSw5ATTo469PQPkqzdoU7be46ryiCDO3boc=
 github.com/livekit/mageutil v0.0.0-20250511045019-0f1ff63f7731/go.mod h1:Rs3MhFwutWhGwmY1VQsygw28z5bWcnEYmS1OG9OxjOQ=
-github.com/livekit/mediatransportutil v0.0.0-20261014192331-dd8e31a0adc0 h1:BSLyHr3Lsl71bHGHsfiYNmbohugR2yoaf9HjAZeFJnc=
-github.com/livekit/mediatransportutil v0.0.0-20261014192331-dd8e31a0adc0/go.mod h1:o8CFmAdrVwzJNOCsQCLUzXRjokkufNshnQHOe4fRaqU=
 github.com/livekit/protocol v1.53.1-0.20261021070436-f09f87aab29b h1:SrvXlVsWYxgdk6VRasJ9HCHFE+psFf17jQwriLBArgY=
 github.com/livekit/protocol v1.53.1-0.20261021070436-f09f87aab29b/go.mod h1:kUTAI2TrTngGOiWP6MTAOkJpru6YYGd0MP9wzlDATy4=
 github.com/livekit/psrpc v0.8.2 h1:7tbkhBJoYlK5Csfkdv1XYbZjyAQeaEZgupvIXNCv7Dc=

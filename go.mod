@@ -143,7 +143,7 @@ require (
 	github.com/pion/srtp/v3 v3.0.13 // indirect
 	github.com/pion/stun/v3 v3.1.7
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_model v0.6.3 // indirect
+	github.com/prometheus/client_model v0.6.3
 	github.com/prometheus/common v0.72.0 // indirect
 	github.com/prometheus/procfs v0.22.0 // indirect
 	github.com/urfave/cli/v3 v3.11.0
@@ -173,4 +173,4 @@ replace github.com/pion/dtls/v3 => github.com/livekit/dtls/v3 v3.1.5-warp.3
 
 replace github.com/pion/ice/v4 => github.com/livekit/ice/v4 v4.4.0-warp.3
 
-replace github.com/livekit/mediatransportutil => github.com/infiniteCable2/mediatransportutil v0.0.0-20261022094814-1de31475b8a9
+replace github.com/livekit/mediatransportutil => github.com/infiniteCable2/mediatransportutil v0.0.0-20261022100008-f9a32b35daff
